@@ -30,12 +30,14 @@ where
         let overflow_3 = local.input_1[0] + local.input_2[0] - local.output[0] + carry_3;
 
         // Limb constraints
+        // the theres an overflow then the overflow should be equal to the base. else, it should be zero.
         builder.assert_zero(overflow_0.clone() * (overflow_0.clone() - base.clone()));
         builder.assert_zero(overflow_1.clone() * (overflow_1.clone() - base.clone()));
         builder.assert_zero(overflow_2.clone() * (overflow_2.clone() - base.clone()));
         builder.assert_zero(overflow_3.clone() * (overflow_3 - base.clone()));
 
         // Carry constraints
+        // If there's an overflow, the corresponding carry bit should be 1. Otherwise, it should be 0.
         builder.assert_zero(
             overflow_0.clone() * (carry_1 - one) + (overflow_0 - base.clone()) * carry_1,
         );
@@ -43,6 +45,8 @@ where
             overflow_1.clone() * (carry_2 - one) + (overflow_1 - base.clone()) * carry_2,
         );
         builder.assert_zero(overflow_2.clone() * (carry_3 - one) + (overflow_2 - base) * carry_3);
+
+        // carry constraints should be binary.
         builder.assert_bool(carry_1);
         builder.assert_bool(carry_2);
         builder.assert_bool(carry_3);

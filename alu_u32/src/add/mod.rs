@@ -49,6 +49,10 @@ where
         trace
     }
 
+    /// Method defines the values that the chip will send to the global bus after its computation. The
+    /// method maps the output of the sum into the appropriate format for sending to the global bus. Each
+    /// limb of the output is transformed into a `VirtualPairCol` and then the `Interaction` is created with
+    /// the `VirtualPairCol` as the field and the `is_real` field as the count.
     fn global_sends(&self, machine: &M) -> Vec<Interaction<M::F>> {
         let sends = ADD_COL_MAP
             .output
@@ -66,6 +70,9 @@ where
         sends
     }
 
+    /// The global_receives method defines how the Add32Chip receives values
+    /// from the global bus. In this specific implementation, the Add32Chip receives
+    /// its opcode (to know it's an addition operation) and its input values.
     fn global_receives(&self, machine: &M) -> Vec<Interaction<M::F>> {
         let opcode = VirtualPairCol::constant(M::F::from_canonical_u32(ADD32));
         let input_1 = ADD_COL_MAP.input_1.0.map(VirtualPairCol::single_main);
@@ -87,6 +94,8 @@ where
 }
 
 impl Add32Chip {
+    /// Transforms `ADD32` operation into a row representation suitable for
+    /// the `Add32Chip` circuit.
     fn op_to_row<F>(&self, op: &Operation) -> [F; NUM_ADD_COLS]
     where
         F: PrimeField,
@@ -120,6 +129,7 @@ impl Add32Chip {
     }
 }
 
+/// Extends a machine with the capability of the Add32Chip.
 pub trait MachineWithAdd32Chip: MachineWithCpuChip {
     fn add_u32(&self) -> &Add32Chip;
     fn add_u32_mut(&mut self) -> &mut Add32Chip;
@@ -138,7 +148,13 @@ where
         let mut imm: Option<Word<u8>> = None;
         let read_addr_1 = (state.cpu().fp as i32 + ops.b()) as u32;
         let write_addr = (state.cpu().fp as i32 + ops.a()) as u32;
+
+        // clk is being used to log the address and its value which was being read
+        // at a given clock cycle.
         let b = state.mem_mut().read(clk, read_addr_1, true);
+
+        // if the other operand is sent as an immediate value, then it is read from the
+        // instruction word itself. Otherwise, it is read from the memory.
         let c = if ops.is_imm() == 1 {
             let c = (ops.c() as u32).into();
             imm = Some(c);
@@ -148,6 +164,7 @@ where
             state.mem_mut().read(clk, read_addr_2, true)
         };
 
+        // The addition operation is performed and the result is written to the memory.
         let a = b + c;
         state.mem_mut().write(clk, write_addr, a, true);
 
